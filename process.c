@@ -2,7 +2,7 @@
 #include "data.h"
 
 BOOL CALLBACK EnumWindowsProc(HWND hWnd, struct processData * pData)
-{;
+{
     DWORD pid;
     GetWindowThreadProcessId(hWnd, &pid);
     if(pid == pData->pid){
