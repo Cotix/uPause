@@ -10,4 +10,9 @@ struct processData{
     char paused;
 };
 
+struct node{
+    struct processData *data;
+    struct node* next;
+};
+
 #endif
