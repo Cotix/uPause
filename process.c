@@ -6,8 +6,8 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd, struct processData * pData)
     DWORD pid;
     GetWindowThreadProcessId(hWnd, &pid);
     if(pid == pData->pid){
-        if(pData->windowAmount >= 255){
-            return 0;
+        if(pData->windowAmount >= 255 || !IsWindowVisible(hWnd)){
+            return 1;
         }
         ShowWindow(hWnd,SW_HIDE);
         pData->windowHandles[pData->windowAmount] = hWnd;
@@ -16,10 +16,24 @@ BOOL CALLBACK EnumWindowsProc(HWND hWnd, struct processData * pData)
     return 1;
 }
 
-struct processData* suspendProcessByWindow(HWND hWnd)
+BOOL CALLBACK EnumWindowsProcNoPause(HWND hWnd, struct processData * pData)
+{
+    DWORD pid;
+    GetWindowThreadProcessId(hWnd, &pid);
+    if(pid == pData->pid){
+        if(pData->windowAmount >= 255 || !IsWindowVisible(hWnd)){
+            return 1;
+        }
+        pData->windowHandles[pData->windowAmount] = hWnd;
+        pData->windowAmount++;
+    }
+    return 1;
+}
+
+struct processData* suspendProcessByWindow()
 {
     struct processData* pData = malloc(sizeof(struct processData));
-    GetWindowThreadProcessId(hWnd, &pData->pid);
+    GetWindowThreadProcessId(GetForegroundWindow(), &pData->pid);
     pData->windowAmount = 0;
     pData->windowHandles = malloc(sizeof(HWND)*256);
     EnumWindows(EnumWindowsProc,pData);
@@ -29,18 +43,39 @@ struct processData* suspendProcessByWindow(HWND hWnd)
     return pData;
 }
 
+struct processData* pDataByWindow()
+{
+    struct processData* pData = malloc(sizeof(struct processData));
+    GetWindowThreadProcessId(GetForegroundWindow(), &pData->pid);
+    pData->windowAmount = 0;
+    pData->windowHandles = malloc(sizeof(HWND)*256);
+    EnumWindows(EnumWindowsProcNoPause,pData);
+    pData->windowHandles = realloc(pData->windowHandles,pData->windowAmount*sizeof(HWND));
+    pData->paused = 0;
+    return pData;
+}
+
+void pauseProcess(struct processData* pData)
+{
+    if(pData->paused == 1){
+        return;
+    }
+    int i;
+    for(i = 0; i != pData->windowAmount; ++i){
+        ShowWindow(pData->windowHandles[i],SW_HIDE);
+    }
+    suspendProcess(pData->pid,1);
+    pData->paused = 1;
+    return;
+}
 void resumeProcess(struct processData* pData)
 {
     suspendProcess(pData->pid,0);
     int i;
-    printf("Resuming process(%i)\nAmount of windows:%i\n",pData->pid,pData->windowAmount);
     for(i = 0; i != pData->windowAmount; ++i){
-        printf("Showing window %i\n",pData->windowHandles[i]);
         ShowWindow(pData->windowHandles[i],SW_SHOW);
     }
     pData->paused = 0;
-    pData->windowAmount = 0;
-    free(pData->windowHandles);
     return;
 }
 
