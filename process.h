@@ -7,6 +7,8 @@
 #include <TlHelp32.h>
 #include <WinBase.h>
 
-struct processData* suspendProcessByWindow(HWND hWnd);
+struct processData* suspendProcessByWindow();
 void resumeProcess(struct processData* pData);
+void pauseProcess(struct processData* pData);
+void suspendProcess(DWORD ProcessId, int Suspend);
 #endif // HEADER_PROCESS
